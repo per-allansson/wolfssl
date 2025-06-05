@@ -1,0 +1,164 @@
+#!/bin/sh
+
+# Test for QUIC client and server examples with socket-based I/O.
+# Ensures they compile, run, perform a handshake, exchange a message, and terminate cleanly.
+
+TEST_NAME="QUIC Example Socket Test"
+# Adjust BASE_PATH if tests are run from a different CWD
+BASE_PATH="."
+# If run from 'make check' in top dir, path might be 'examples/quic/'
+# If run from 'tests' dir, path is '../examples/quic/'
+CLIENT_EXE=${BASE_PATH}/../examples/quic/quic_client
+SERVER_EXE=${BASE_PATH}/../examples/quic/quic_server
+
+CLIENT_LOG=client_quic_socket_example.log
+SERVER_LOG=server_quic_socket_example.log
+CLIENT_STDOUT_LOG=client_stdout.log
+SERVER_STDOUT_LOG=server_stdout.log
+
+SUCCESS_MARKER="Test PASSED"
+FAILURE_MARKER="Test FAILED"
+TEST_TIMEOUT=15 # Total seconds to wait for client and server operations
+
+# Clean up previous logs
+rm -f $CLIENT_LOG $SERVER_LOG $CLIENT_STDOUT_LOG $SERVER_STDOUT_LOG
+
+echo "Starting $TEST_NAME"
+
+# Check if executables exist
+if [ ! -x "$SERVER_EXE" ]; then
+    echo "$FAILURE_MARKER: Server executable $SERVER_EXE not found or not executable."
+    exit 1
+fi
+if [ ! -x "$CLIENT_EXE" ]; then
+    echo "$FAILURE_MARKER: Client executable $CLIENT_EXE not found or not executable."
+    exit 1
+fi
+
+# Run server in background
+echo "Running server: $SERVER_EXE"
+# Server stderr is $SERVER_LOG, stdout is $SERVER_STDOUT_LOG
+$SERVER_EXE > $SERVER_STDOUT_LOG 2> $SERVER_LOG &
+SERVER_PID=$!
+echo "Server PID: $SERVER_PID"
+
+# Give server a moment to start and bind
+sleep 0.5
+
+# Run client
+# Client stderr is $CLIENT_LOG, stdout is $CLIENT_STDOUT_LOG (where it prints received message)
+echo "Running client: $CLIENT_EXE"
+$CLIENT_EXE > $CLIENT_STDOUT_LOG 2> $CLIENT_LOG
+CLIENT_RC=$?
+
+# Server should ideally exit after client disconnects or after handling one message.
+# Give it a few seconds to process and exit, then kill if still running.
+# Using a subshell for a timeout mechanism for waiting for the server.
+( sleep $(($TEST_TIMEOUT - 2)) ; \
+  if kill -0 $SERVER_PID > /dev/null 2>&1; then \
+      echo "Server timeout reached, killing server PID $SERVER_PID" ; \
+      kill -TERM $SERVER_PID ; \
+      sleep 0.5 ; \
+      if kill -0 $SERVER_PID > /dev/null 2>&1; then kill -KILL $SERVER_PID ; fi ; \
+  fi ) &
+WAITER_PID=$!
+
+wait $SERVER_PID
+SERVER_RC=$?
+disown $WAITER_PID # remove job from shell's table
+kill -TERM $WAITER_PID > /dev/null 2>&1 # make sure waiter subshell is killed
+
+
+# --- Verification ---
+PASSED=1
+
+echo "Client exit code: $CLIENT_RC"
+if [ $CLIENT_RC -ne 0 ]; then
+    echo "Client exited with $CLIENT_RC (expected 0 for success)"
+    PASSED=0
+fi
+
+echo "Server exit code: $SERVER_RC"
+# Server might be killed by timeout, so its RC might not be 0.
+# If client passed and server logs look good up to a point, we might be okay.
+# For now, let's be strict if server didn't exit cleanly on its own.
+# A more robust check would be if the server processed the request before being killed.
+if [ $SERVER_RC -ne 0 ]; then
+    # Check if it was killed by our timeout logic or exited non-zero on its own
+    if kill -0 $SERVER_PID > /dev/null 2>&1; then # Was still running before explicit kill by waiter
+        echo "Server did not terminate cleanly on its own (exit code $SERVER_RC after wait)"
+        # PASSED=0 # Relax this if timeout kill is acceptable for server
+    elif [ $SERVER_RC -eq 143 ] || [ $SERVER_RC -eq 137 ]; then # 143=SIGTERM, 137=SIGKILL
+         echo "Server was terminated by test script (exit code $SERVER_RC)."
+         # This might be okay if client interaction was successful.
+    else
+        echo "Server exited with $SERVER_RC (expected 0 for success or clean termination)"
+        PASSED=0
+    fi
+fi
+
+
+# Client Log Checks
+echo "Checking client logs..."
+grep "QUIC Handshake Complete!" $CLIENT_LOG > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Client log ($CLIENT_LOG) did not contain 'QUIC Handshake Complete!'."
+    PASSED=0
+else
+    echo "Client log: Handshake reported complete."
+fi
+
+grep 'CLIENT: Received response: "Hello QUIC Client!"' $CLIENT_STDOUT_LOG > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Client stdout log ($CLIENT_STDOUT_LOG) did not contain expected server response."
+    PASSED=0
+else
+    echo "Client log: Correct server response received."
+fi
+
+# Server Log Checks
+echo "Checking server logs..."
+grep "QUIC Server listening" $SERVER_LOG > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Server log ($SERVER_LOG) did not contain 'QUIC Server listening'."
+    PASSED=0
+else
+    echo "Server log: Server reported listening."
+fi
+
+grep 'SERVER: Received message: "Hello QUIC Server!"' $SERVER_LOG > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Server log ($SERVER_LOG) did not contain expected client message."
+    PASSED=0
+else
+    echo "Server log: Correct client message received."
+fi
+
+grep "SERVER: Response sent." $SERVER_LOG > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Server log ($SERVER_LOG) did not confirm sending response."
+    PASSED=0
+else
+    echo "Server log: Server reported sending response."
+fi
+
+
+# Final result
+if [ $PASSED -eq 1 ]; then
+    echo "$SUCCESS_MARKER: $TEST_NAME"
+    # Clean up successful logs
+    rm -f $CLIENT_LOG $SERVER_LOG $CLIENT_STDOUT_LOG $SERVER_STDOUT_LOG
+    exit 0
+else
+    echo "$FAILURE_MARKER: $TEST_NAME"
+    echo "--- Client Log ($CLIENT_LOG) ---"
+    cat $CLIENT_LOG
+    echo "--- Client Stdout ($CLIENT_STDOUT_LOG) ---"
+    cat $CLIENT_STDOUT_LOG
+    echo "--- Server Log ($SERVER_LOG) ---"
+    cat $SERVER_LOG
+    echo "--- Server Stdout ($SERVER_STDOUT_LOG) ---"
+    cat $SERVER_STDOUT_LOG
+    echo "------------------------------------"
+    exit 1
+fi

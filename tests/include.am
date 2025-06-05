@@ -25,8 +25,16 @@ tests_unit_test_CFLAGS       = -DNO_MAIN_DRIVER $(AM_CFLAGS) $(WOLFSENTRY_INCLUD
 tests_unit_test_LDADD        = src/libwolfssl@LIBSUFFIX@.la $(LIB_STATIC_ADD) $(WOLFSENTRY_LIB)
 tests_unit_test_DEPENDENCIES = src/libwolfssl@LIBSUFFIX@.la
 include tests/api/include.am
-endif
+
+# List of tests to be run with "make check"
+# If TESTS is not already defined, this will define it.
+# Otherwise, it appends to the existing list.
+TESTS += tests/quic_example.test
+
+endif # BUILD_TESTS
+
 EXTRA_DIST += tests/unit.h \
+              tests/quic_example.test \
               tests/test.conf \
               tests/test-sha2.conf \
               tests/test-tls13.conf \

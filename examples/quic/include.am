@@ -1,0 +1,33 @@
+# vim:ft=automake
+# All paths should be given relative to the top_srcdir
+
+# Add to the list of programs to be built.
+# These will be installed in $(bindir) if bin_PROGRAMS is used in the main Makefile.am
+# If examples are not typically installed, noinst_PROGRAMS would be used.
+# Sticking to bin_PROGRAMS as per earlier interpretation for the examples themselves.
+bin_PROGRAMS += examples/quic/quic_client examples/quic/quic_server
+
+# Define sources, LDADD, and dependencies for quic_client
+examples_quic_quic_client_SOURCES = examples/quic/quic_client.c examples/quic/quic_utils.c
+examples_quic_quic_client_LDADD = $(top_builddir)/src/libwolfssl.la $(LIB_STATIC_ADD) $(WOLFSENTRY_LIB)
+examples_quic_quic_client_DEPENDENCIES = $(top_builddir)/src/libwolfssl.la
+# If specific CFLAGS are needed (e.g. for WOLFSENTRY_INCLUDE which was in client example CFLAGS)
+# examples_quic_quic_client_CFLAGS = $(AM_CFLAGS) # Add other flags if necessary
+
+# Define sources, LDADD, and dependencies for quic_server
+examples_quic_quic_server_SOURCES = examples/quic/quic_server.c examples/quic/quic_utils.c
+examples_quic_quic_server_LDADD = $(top_builddir)/src/libwolfssl.la $(LIB_STATIC_ADD) $(WOLFSENTRY_LIB)
+examples_quic_quic_server_DEPENDENCIES = $(top_builddir)/src/libwolfssl.la
+# examples_quic_quic_server_CFLAGS = $(AM_CFLAGS)
+
+# Add related files to EXTRA_DIST so they are included in distribution packages
+EXTRA_DIST += examples/quic/quic_client.c \
+              examples/quic/quic_server.c \
+              examples/quic/quic_utils.c \
+              examples/quic/quic_utils.h \
+              examples/quic/README.md \
+              examples/quic/include.am
+# Note: Including include.am itself in EXTRA_DIST is good practice.
+
+# If there were specific headers for these examples not in top_srcdir:
+# noinst_HEADERS += examples/quic/quic_custom_header.h
