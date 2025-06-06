@@ -10724,7 +10724,6 @@ AC_CONFIG_FILES([Makefile
         debian/changelog
         rpm/spec
         wolfcrypt/test/test_paths.h
-        examples/quic/Makefile
         ])
 AC_CONFIG_FILES([scripts/unit.test],[chmod +x scripts/unit.test])
 

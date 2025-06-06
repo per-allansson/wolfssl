@@ -4,12 +4,9 @@
 # Ensures they compile, run, perform a handshake, exchange a message, and terminate cleanly.
 
 TEST_NAME="QUIC Example Socket Test"
-# Adjust BASE_PATH if tests are run from a different CWD
-BASE_PATH="."
-# If run from 'make check' in top dir, path might be 'examples/quic/'
-# If run from 'tests' dir, path is '../examples/quic/'
-CLIENT_EXE=${BASE_PATH}/../examples/quic/quic_client
-SERVER_EXE=${BASE_PATH}/../examples/quic/quic_server
+# Assuming 'make check' runs tests from the top-level build directory
+CLIENT_EXE=./examples/quic/quic_client
+SERVER_EXE=./examples/quic/quic_server
 
 CLIENT_LOG=client_quic_socket_example.log
 SERVER_LOG=server_quic_socket_example.log

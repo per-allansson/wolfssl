@@ -1,13 +1,23 @@
 /* Example QUIC client using socket-based I/O */
 
-#include <wolfssl/ssl.h>
-#include <wolfssl/quic.h>
-#include <wolfssl/wolfcrypt/error-crypt.h> // For wolfSSL_ERR_error_string
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h> // For select timeout
+#ifdef HAVE_CONFIG_H
+    #include <config.h>
+#endif
 
-#include "quic_utils.h" // Our new QUIC utilities
+#ifndef WOLFSSL_USER_SETTINGS
+    #include <wolfssl/options.h>
+#endif
+#include <wolfssl/wolfcrypt/settings.h>
+
+#include <stdio.h> // System headers next
+#include <string.h>
+#include <sys/time.h>
+
+#include <wolfssl/ssl.h> // Other wolfSSL headers
+#include <wolfssl/quic.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
+#include "quic_utils.h" // Local project headers
 
 #define SERVER_HOST "127.0.0.1"
 #define SERVER_PORT 11111
@@ -173,16 +183,19 @@ int main(int argc, char **argv)
             ret = wolfSSL_quic_read_write(ssl); // Or could just set ret to force WANT_READ expectation
         } else {
             // Other error
+            wolfSSL_ERR_error_string_n(err, err_buffer, sizeof(err_buffer));
             fprintf(stderr, "ERROR: Handshake failed with error %d: %s\n", err,
-                    wolfSSL_ERR_error_string_n(err, err_buffer, sizeof(err_buffer)));
+                    err_buffer);
             goto cleanup; // Unrecoverable error
         }
         iterations++;
     }
 
     if (ret != WOLFSSL_SUCCESS) {
-        fprintf(stderr, "ERROR: QUIC Handshake failed after %d iterations. Last error: %s, ret: %d\n", iterations,
-                wolfSSL_ERR_reason_error_string(wolfSSL_get_error(ssl,ret)), ret);
+        int last_err = wolfSSL_get_error(ssl, ret); // Get the specific error code
+        wolfSSL_ERR_error_string_n(last_err, err_buffer, sizeof(err_buffer)); // Use the specific error code
+        fprintf(stderr, "ERROR: QUIC Handshake failed after %d iterations. Last ret: %d, SSL error: %d (%s)\n",
+                iterations, ret, last_err, err_buffer);
         goto cleanup;
     }
 

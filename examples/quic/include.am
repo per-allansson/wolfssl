@@ -1,24 +1,30 @@
 # vim:ft=automake
 # All paths should be given relative to the top_srcdir
 
-# Add to the list of programs to be built.
-# These will be installed in $(bindir) if bin_PROGRAMS is used in the main Makefile.am
-# If examples are not typically installed, noinst_PROGRAMS would be used.
-# Sticking to bin_PROGRAMS as per earlier interpretation for the examples themselves.
-bin_PROGRAMS += examples/quic/quic_client examples/quic/quic_server
+# Ensure top_builddir is searched first for config.h/options.h, then top_srcdir for wolfssl headers.
+# AM_CPPFLAGS will be appended by automake from global settings.
+TARGET_SPECIFIC_QUIC_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 
-# Define sources, LDADD, and dependencies for quic_client
+# Add to the list of programs to be built.
+# These will be installed in $(bindir) if bin_PROGRAMS is defined appropriately
+# in a higher-level Makefile.am that includes this file.
+if BUILD_EXAMPLE_CLIENTS
+bin_PROGRAMS += examples/quic/quic_client
 examples_quic_quic_client_SOURCES = examples/quic/quic_client.c examples/quic/quic_utils.c
+examples_quic_quic_client_CPPFLAGS = $(TARGET_SPECIFIC_QUIC_CPPFLAGS) $(AM_CPPFLAGS)
 examples_quic_quic_client_LDADD = $(top_builddir)/src/libwolfssl.la $(LIB_STATIC_ADD) $(WOLFSENTRY_LIB)
 examples_quic_quic_client_DEPENDENCIES = $(top_builddir)/src/libwolfssl.la
-# If specific CFLAGS are needed (e.g. for WOLFSENTRY_INCLUDE which was in client example CFLAGS)
-# examples_quic_quic_client_CFLAGS = $(AM_CFLAGS) # Add other flags if necessary
+# examples_quic_quic_client_CFLAGS = $(AM_CFLAGS) $(WOLFSENTRY_INCLUDE) # Add other CFLAGS if necessary
+endif
 
-# Define sources, LDADD, and dependencies for quic_server
+if BUILD_EXAMPLE_SERVERS
+bin_PROGRAMS += examples/quic/quic_server
 examples_quic_quic_server_SOURCES = examples/quic/quic_server.c examples/quic/quic_utils.c
+examples_quic_quic_server_CPPFLAGS = $(TARGET_SPECIFIC_QUIC_CPPFLAGS) $(AM_CPPFLAGS)
 examples_quic_quic_server_LDADD = $(top_builddir)/src/libwolfssl.la $(LIB_STATIC_ADD) $(WOLFSENTRY_LIB)
 examples_quic_quic_server_DEPENDENCIES = $(top_builddir)/src/libwolfssl.la
-# examples_quic_quic_server_CFLAGS = $(AM_CFLAGS)
+# examples_quic_quic_server_CFLAGS = $(AM_CFLAGS) $(WOLFSENTRY_INCLUDE) # Add other CFLAGS if necessary
+endif
 
 # Add related files to EXTRA_DIST so they are included in distribution packages
 EXTRA_DIST += examples/quic/quic_client.c \

@@ -1,14 +1,24 @@
 /* Example QUIC server using socket-based I/O */
 
-#include <wolfssl/ssl.h>
-#include <wolfssl/quic.h>
-#include <wolfssl/wolfcrypt/error-crypt.h> // For wolfSSL_ERR_error_string
-#include <stdio.h>
+#ifdef HAVE_CONFIG_H
+    #include <config.h>
+#endif
+
+#ifndef WOLFSSL_USER_SETTINGS
+    #include <wolfssl/options.h>
+#endif
+#include <wolfssl/wolfcrypt/settings.h>
+
+#include <stdio.h> // System headers next
 #include <string.h>
-#include <sys/time.h> // For select timeout
+#include <sys/time.h>
 #include <errno.h>
 
-#include "quic_utils.h" // Our new QUIC utilities
+#include <wolfssl/ssl.h> // Other wolfSSL headers
+#include <wolfssl/quic.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
+#include "quic_utils.h" // Local project headers
 
 #define SERVER_HOST "0.0.0.0" // Listen on all interfaces
 #define SERVER_PORT 11111
@@ -65,15 +75,17 @@ int main(int argc, char **argv)
 
     // Load server certificate and private key
     if (wolfSSL_CTX_use_certificate_file(ctx, CERT_FILE, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) {
+        unsigned long err_code = wolfSSL_ERR_get_error();
         fprintf(stderr, "ERROR: failed to load %s: %s\n", CERT_FILE,
-                wolfSSL_ERR_reason_error_string(wolfSSL_CTX_get_error(ctx,0)));
+                wolfSSL_ERR_reason_error_string(err_code));
         goto cleanup;
     }
     fprintf(stderr, "Server certificate loaded.\n");
 
     if (wolfSSL_CTX_use_PrivateKey_file(ctx, KEY_FILE, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) {
+        unsigned long err_code = wolfSSL_ERR_get_error();
         fprintf(stderr, "ERROR: failed to load %s: %s\n", KEY_FILE,
-                wolfSSL_ERR_reason_error_string(wolfSSL_CTX_get_error(ctx,0)));
+                wolfSSL_ERR_reason_error_string(err_code));
         goto cleanup;
     }
     fprintf(stderr, "Server private key loaded.\n");
@@ -81,25 +93,12 @@ int main(int argc, char **argv)
     // Initialize and set the QUIC method on the CTX
     init_quic_method(&quic_method_actual);
     if (wolfSSL_CTX_set_quic_method(ctx, &quic_method_actual) != WOLFSSL_SUCCESS) {
+        unsigned long err_code = wolfSSL_ERR_get_error();
         fprintf(stderr, "ERROR: wolfSSL_CTX_set_quic_method failed: %s\n",
-                wolfSSL_ERR_reason_error_string(wolfSSL_CTX_get_error(ctx,0)));
+                wolfSSL_ERR_reason_error_string(err_code));
         goto cleanup;
     }
     fprintf(stderr, "QUIC method set on CTX.\n");
-
-    // Server-side QUIC transport parameters
-    static const byte tp_params_s[] = {
-        0x00, 0x05, /* id=initial_max_data */
-        0x00, 0x04, /* length=4 */
-        0x00, 0x00, 0x00, 0x00 /* value=0 */
-        // Add other parameters as needed
-    };
-    if (wolfSSL_CTX_set_quic_transport_params(ctx, tp_params_s, sizeof(tp_params_s)) != WOLFSSL_SUCCESS) {
-         fprintf(stderr, "ERROR: wolfSSL_CTX_set_quic_transport_params failed: %s\n",
-                 wolfSSL_ERR_reason_error_string(wolfSSL_CTX_get_error(ctx,0)));
-         goto cleanup;
-    }
-    fprintf(stderr, "QUIC transport parameters set on CTX.\n");
 
     // Create WOLFSSL object for the connection
     ssl = wolfSSL_new(ctx);
@@ -110,6 +109,24 @@ int main(int argc, char **argv)
 
     // Set the QuicSocketContext as app data for this SSL object
     wolfSSL_set_app_data(ssl, &socket_ctx);
+
+    // Server-side QUIC transport parameters (set on SSL object)
+    static const byte tp_params_s[] = {
+        0x00, 0x05, /* id=initial_max_data */
+        0x00, 0x04, /* length=4 */
+        0x00, 0x00, 0x00, 0x00 /* value=0 */
+        // Add other parameters as needed
+    };
+    if (wolfSSL_set_quic_transport_params(ssl, tp_params_s, sizeof(tp_params_s)) != WOLFSSL_SUCCESS) {
+         // For SSL object specific functions, get error from SSL object
+         int ssl_err = wolfSSL_get_error(ssl, 0);
+         char lerr_buffer[WOLFSSL_MAX_ERROR_SZ];
+         wolfSSL_ERR_error_string_n(ssl_err, lerr_buffer, sizeof(lerr_buffer));
+         fprintf(stderr, "ERROR: wolfSSL_set_quic_transport_params failed: %s (%d)\n",
+                 lerr_buffer, ssl_err);
+         goto cleanup;
+    }
+    fprintf(stderr, "QUIC transport parameters set on SSL object.\n");
 
     // --- Listening and Handshake Loop ---
     fprintf(stderr, "QUIC Server listening on %s:%d...\n", SERVER_HOST, SERVER_PORT);
@@ -199,17 +216,19 @@ int main(int argc, char **argv)
             fprintf(stderr, "Handshake: WANT_WRITE. Data sent by callback. Expecting read.\n");
             ret = wolfSSL_quic_read_write(ssl);
         } else {
+            wolfSSL_ERR_error_string_n(err, err_buffer, sizeof(err_buffer));
             fprintf(stderr, "ERROR: Handshake failed with error %d: %s\n", err,
-                    wolfSSL_ERR_error_string_n(err, err_buffer, sizeof(err_buffer)));
+                    err_buffer);
             goto cleanup;
         }
         iterations++;
     }
 
     if (ret != WOLFSSL_SUCCESS) {
-        fprintf(stderr, "ERROR: QUIC Handshake failed after %d iterations for client %s:%d. Last error: %s, ret: %d\n",
-                iterations, peer_ip_str, peer_port,
-                wolfSSL_ERR_reason_error_string(wolfSSL_get_error(ssl,ret)), ret);
+        int last_err = wolfSSL_get_error(ssl, ret);
+        wolfSSL_ERR_error_string_n(last_err, err_buffer, sizeof(err_buffer));
+        fprintf(stderr, "ERROR: QUIC Handshake failed after %d iterations for client %s:%d. Last ret: %d, SSL error: %d (%s)\n",
+                iterations, peer_ip_str, peer_port, ret, last_err, err_buffer);
         goto cleanup;
     }
 

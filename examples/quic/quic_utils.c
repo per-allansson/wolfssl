@@ -1,9 +1,18 @@
-#include "quic_utils.h"
+#ifdef HAVE_CONFIG_H
+    #include <config.h>
+#endif
 
-#include <stdio.h>
+#ifndef WOLFSSL_USER_SETTINGS
+    #include <wolfssl/options.h>
+#endif
+#include <wolfssl/wolfcrypt/settings.h>
+
+#include <stdio.h> // System headers next
 #include <string.h>
 #include <errno.h>
-#include <netdb.h> // For getaddrinfo
+#include <netdb.h>
+
+#include "quic_utils.h" // Local project headers, which includes wolfssl/ssl.h etc.
 
 // Callback implementations
 
