@@ -7042,6 +7042,14 @@ int SetSSL_CTX(WOLFSSL* ssl, WOLFSSL_CTX* ctx, int writeDup)
     ssl->options.quietShutdown = ctx->quietShutdown;
     ssl->options.groupMessages = ctx->groupMessages;
 
+#ifdef OPENSSL_EXTRA
+    ssl->clientHashSigAlgoSz = ctx->clientHashSigAlgoSz;
+    if (ssl->clientHashSigAlgoSz > 0) {
+        XMEMCPY(ssl->clientHashSigAlgo, ctx->clientHashSigAlgo,
+                ssl->clientHashSigAlgoSz);
+    }
+#endif
+
 #ifndef NO_DH
     #if !defined(WOLFSSL_OLD_PRIME_CHECK) && !defined(HAVE_FIPS) && \
         !defined(HAVE_SELFTEST)
@@ -25078,6 +25086,8 @@ int SendCertificateRequest(WOLFSSL* ssl)
     WOLF_STACK_OF(WOLFSSL_X509_NAME)* names;
 #endif
     const Suites* suites = WOLFSSL_SUITES(ssl);
+    const byte* hashSigAlgo = suites->hashSigAlgo;
+    word16 hashSigAlgoSz = suites->hashSigAlgoSz;
 
     int  typeTotal = 1;  /* only 1 for now */
     int  reqSz = ENUM_LEN + typeTotal + REQ_HEADER_SZ;  /* add auth later */
@@ -25085,8 +25095,15 @@ int SendCertificateRequest(WOLFSSL* ssl)
     WOLFSSL_START(WC_FUNC_CERTIFICATE_REQUEST_SEND);
     WOLFSSL_ENTER("SendCertificateRequest");
 
+#ifdef OPENSSL_EXTRA
+    if (ssl->clientHashSigAlgoSz > 0) {
+        hashSigAlgo = ssl->clientHashSigAlgo;
+        hashSigAlgoSz = ssl->clientHashSigAlgoSz;
+    }
+#endif
+
     if (IsAtLeastTLSv1_2(ssl))
-        reqSz += LENGTH_SZ + suites->hashSigAlgoSz;
+        reqSz += LENGTH_SZ + hashSigAlgoSz;
 
 #ifndef WOLFSSL_NO_CA_NAMES
     /* Certificate Authorities */
@@ -25171,11 +25188,11 @@ int SendCertificateRequest(WOLFSSL* ssl)
 
     /* supported hash/sig */
     if (IsAtLeastTLSv1_2(ssl)) {
-        c16toa(suites->hashSigAlgoSz, &output[i]);
+        c16toa(hashSigAlgoSz, &output[i]);
         i += OPAQUE16_LEN;
 
-        XMEMCPY(&output[i], suites->hashSigAlgo, suites->hashSigAlgoSz);
-        i += suites->hashSigAlgoSz;
+        XMEMCPY(&output[i], hashSigAlgo, hashSigAlgoSz);
+        i += hashSigAlgoSz;
     }
 
     /* Certificate Authorities */

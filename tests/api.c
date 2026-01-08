@@ -18712,9 +18712,21 @@ static int test_wolfSSL_set1_sigalgs_list(void)
     ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, NULL), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
     ExpectIntEQ(wolfSSL_set1_sigalgs_list(NULL, NULL), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
     ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, NULL), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(NULL, NULL),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, NULL),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(NULL, NULL),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, NULL),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
 
     ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, ""), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
     ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, ""), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, ""),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+    ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, ""),
+                WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
 
 #ifndef NO_RSA
     #ifndef NO_SHA256
@@ -18727,18 +18739,34 @@ static int test_wolfSSL_set1_sigalgs_list(void)
                     WOLFSSL_SUCCESS);
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA+SHA256"),
                     WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "RSA+SHA256"),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "RSA+SHA256"),
+                    WOLFSSL_SUCCESS);
         ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "RSA-SHA256"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA-SHA256"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "RSA-SHA256"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "RSA-SHA256"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         #ifdef WC_RSA_PSS
             ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "RSA-PSS+SHA256"),
                         WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA-PSS+SHA256"),
                         WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                        "RSA-PSS+SHA256"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl,
+                        "RSA-PSS+SHA256"), WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "PSS+SHA256"),
                         WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "PSS+SHA256"),
+                        WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "PSS+SHA256"),
+                        WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "PSS+SHA256"),
                         WOLFSSL_SUCCESS);
         #endif
         #ifdef WOLFSSL_SHA512
@@ -18746,22 +18774,42 @@ static int test_wolfSSL_set1_sigalgs_list(void)
                        "RSA+SHA256:RSA+SHA512"), WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl,
                        "RSA+SHA256:RSA+SHA512"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                       "RSA+SHA256:RSA+SHA512"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl,
+                       "RSA+SHA256:RSA+SHA512"), WOLFSSL_SUCCESS);
         #elif defined(WOLFSSL_SHA384)
             ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx,
                        "RSA+SHA256:RSA+SHA384"), WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl,
                        "RSA+SHA256:RSA+SHA384"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                       "RSA+SHA256:RSA+SHA384"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl,
+                       "RSA+SHA256:RSA+SHA384"), WOLFSSL_SUCCESS);
         #endif
         ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "RSA"), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA"), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "RSA"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "RSA"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "RSA:RSA+SHA256"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA:RSA+SHA256"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "RSA:RSA+SHA256"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "RSA:RSA+SHA256"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
 
         ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "RSA+SHA256+SHA256"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "RSA+SHA256+RSA"),
+                    WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                    "RSA+SHA256+SHA256"), WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "RSA+SHA256+RSA"),
                     WC_NO_ERR_TRACE(WOLFSSL_FAILURE));
     #endif
 #endif
@@ -18771,15 +18819,27 @@ static int test_wolfSSL_set1_sigalgs_list(void)
                     WOLFSSL_SUCCESS);
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "ECDSA+SHA256"),
             WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "ECDSA+SHA256"),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "ECDSA+SHA256"),
+                    WOLFSSL_SUCCESS);
         #ifdef WOLFSSL_SHA512
             ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx,
                        "ECDSA+SHA256:ECDSA+SHA512"), WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl,
                        "ECDSA+SHA256:ECDSA+SHA512"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                       "ECDSA+SHA256:ECDSA+SHA512"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl,
+                       "ECDSA+SHA256:ECDSA+SHA512"), WOLFSSL_SUCCESS);
         #elif defined(WOLFSSL_SHA384)
             ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx,
                        "ECDSA+SHA256:ECDSA+SHA384"), WOLFSSL_SUCCESS);
             ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl,
+                       "ECDSA+SHA256:ECDSA+SHA384"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx,
+                       "ECDSA+SHA256:ECDSA+SHA384"), WOLFSSL_SUCCESS);
+            ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl,
                        "ECDSA+SHA256:ECDSA+SHA384"), WOLFSSL_SUCCESS);
         #endif
     #endif
@@ -18787,10 +18847,18 @@ static int test_wolfSSL_set1_sigalgs_list(void)
 #ifdef HAVE_ED25519
     ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "ED25519"), WOLFSSL_SUCCESS);
     ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "ED25519"), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "ED25519"),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "ED25519"),
+                WOLFSSL_SUCCESS);
 #endif
 #ifdef HAVE_ED448
     ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "ED448"), WOLFSSL_SUCCESS);
     ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "ED448"), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "ED448"),
+                WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "ED448"),
+                WOLFSSL_SUCCESS);
 #endif
 #ifndef NO_DSA
     #ifndef NO_SHA256
@@ -18798,12 +18866,20 @@ static int test_wolfSSL_set1_sigalgs_list(void)
                     WOLFSSL_SUCCESS);
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "DSA+SHA256"),
                     WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "DSA+SHA256"),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "DSA+SHA256"),
+                    WOLFSSL_SUCCESS);
     #endif
     #if !defined(NO_SHA) && (!defined(NO_OLD_TLS) || \
                                                 defined(WOLFSSL_ALLOW_TLS_SHA1))
         ExpectIntEQ(wolfSSL_CTX_set1_sigalgs_list(ctx, "DSA+SHA1"),
                     WOLFSSL_SUCCESS);
         ExpectIntEQ(wolfSSL_set1_sigalgs_list(ssl, "DSA+SHA1"),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_CTX_set1_client_sigalgs_list(ctx, "DSA+SHA1"),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_set1_client_sigalgs_list(ssl, "DSA+SHA1"),
                     WOLFSSL_SUCCESS);
     #endif
 #endif

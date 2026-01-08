@@ -18302,6 +18302,56 @@ int wolfSSL_set1_sigalgs_list(WOLFSSL* ssl, const char* list)
     return SetSuitesHashSigAlgo(ssl->suites, list);
 }
 
+/* Colon separated list of <public key>+<digest> algorithms for client auth.
+ * Replaces list in context.
+ */
+int wolfSSL_CTX_set1_client_sigalgs_list(WOLFSSL_CTX* ctx, const char* list)
+{
+    Suites suites;
+
+    WOLFSSL_MSG("wolfSSL_CTX_set1_client_sigalgs_list");
+
+    if (ctx == NULL || list == NULL) {
+        WOLFSSL_MSG("Bad function arguments");
+        return WOLFSSL_FAILURE;
+    }
+
+    ctx->clientHashSigAlgoSz = 0;
+    XMEMSET(&suites, 0, sizeof(suites));
+    if (SetSuitesHashSigAlgo(&suites, list) != 1)
+        return WOLFSSL_FAILURE;
+
+    ctx->clientHashSigAlgoSz = suites.hashSigAlgoSz;
+    XMEMCPY(ctx->clientHashSigAlgo, suites.hashSigAlgo, suites.hashSigAlgoSz);
+
+    return WOLFSSL_SUCCESS;
+}
+
+/* Colon separated list of <public key>+<digest> algorithms for client auth.
+ * Replaces list in SSL.
+ */
+int wolfSSL_set1_client_sigalgs_list(WOLFSSL* ssl, const char* list)
+{
+    Suites suites;
+
+    WOLFSSL_MSG("wolfSSL_set1_client_sigalgs_list");
+
+    if (ssl == NULL || list == NULL) {
+        WOLFSSL_MSG("Bad function arguments");
+        return WOLFSSL_FAILURE;
+    }
+
+    ssl->clientHashSigAlgoSz = 0;
+    XMEMSET(&suites, 0, sizeof(suites));
+    if (SetSuitesHashSigAlgo(&suites, list) != 1)
+        return WOLFSSL_FAILURE;
+
+    ssl->clientHashSigAlgoSz = suites.hashSigAlgoSz;
+    XMEMCPY(ssl->clientHashSigAlgo, suites.hashSigAlgo, suites.hashSigAlgoSz);
+
+    return WOLFSSL_SUCCESS;
+}
+
 static int HashToNid(byte hashAlgo, int* nid)
 {
     int ret = WOLFSSL_SUCCESS;

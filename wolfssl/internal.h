@@ -3818,6 +3818,10 @@ struct WOLFSSL_CTX {
     int              ownOurCert;  /* Dispose of certificate if we own */
 #endif
     Suites*     suites;           /* make dynamic, user may not need/set */
+#ifdef OPENSSL_EXTRA
+    word16      clientHashSigAlgoSz;  /* SigAlgo list for client auth */
+    byte        clientHashSigAlgo[WOLFSSL_MAX_SIGALGO]; /* sig/algo list */
+#endif
     void*       heap;             /* for user memory overrides */
     byte        verifyDepth;
     byte        verifyPeer:1;
@@ -5959,6 +5963,10 @@ struct WOLFSSL {
     byte            numGroups;
 #endif
     word16          pssAlgo;
+#ifdef OPENSSL_EXTRA
+    word16          clientHashSigAlgoSz;  /* SigAlgo list for client auth */
+    byte            clientHashSigAlgo[WOLFSSL_MAX_SIGALGO]; /* sig/algo list */
+#endif
 #ifdef WOLFSSL_TLS13
     word16          certHashSigAlgoSz;  /* SigAlgoCert ext length in bytes */
     byte            certHashSigAlgo[WOLFSSL_MAX_SIGALGO]; /* cert sig/algo to

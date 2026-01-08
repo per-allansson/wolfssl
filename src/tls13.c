@@ -7763,6 +7763,7 @@ static int SendTls13CertificateRequest(WOLFSSL* ssl, byte* reqCtx,
     word32 i;
     word32 reqSz;
     word16 hashSigAlgoSz = 0;
+    const byte* hashSigAlgo = NULL;
     SignatureAlgorithms* sa;
 
     WOLFSSL_START(WC_FUNC_CERTIFICATE_REQUEST_SEND);
@@ -7773,14 +7774,28 @@ static int SendTls13CertificateRequest(WOLFSSL* ssl, byte* reqCtx,
     if (ssl->options.side != WOLFSSL_SERVER_END)
         return SIDE_ERROR;
 
-    /* Get the length of the hashSigAlgo buffer */
-    InitSuitesHashSigAlgo(NULL, SIG_ALL, 1, ssl->buffers.keySz,
-        &hashSigAlgoSz);
+#ifdef OPENSSL_EXTRA
+    if (ssl->clientHashSigAlgoSz > 0) {
+        hashSigAlgoSz = ssl->clientHashSigAlgoSz;
+        hashSigAlgo = ssl->clientHashSigAlgo;
+    }
+#endif
+
+    if (hashSigAlgo == NULL) {
+        /* Get the length of the hashSigAlgo buffer */
+        InitSuitesHashSigAlgo(NULL, SIG_ALL, 1, ssl->buffers.keySz,
+            &hashSigAlgoSz);
+    }
     sa = TLSX_SignatureAlgorithms_New(ssl, hashSigAlgoSz, ssl->heap);
     if (sa == NULL)
         return MEMORY_ERROR;
-    InitSuitesHashSigAlgo(sa->hashSigAlgo, SIG_ALL, 1, ssl->buffers.keySz,
-        &hashSigAlgoSz);
+    if (hashSigAlgo != NULL) {
+        XMEMCPY(sa->hashSigAlgo, hashSigAlgo, hashSigAlgoSz);
+    }
+    else {
+        InitSuitesHashSigAlgo(sa->hashSigAlgo, SIG_ALL, 1, ssl->buffers.keySz,
+            &hashSigAlgoSz);
+    }
     ret = TLSX_Push(&ssl->extensions, TLSX_SIGNATURE_ALGORITHMS, sa, ssl->heap);
     if (ret != 0) {
         TLSX_SignatureAlgorithms_FreeAll(sa, ssl->heap);
